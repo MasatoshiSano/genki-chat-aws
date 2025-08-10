@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元気チャット - チャット画面</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* チャット固有のスタイル */
+        body {
+            height: 100vh;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: transparent;
+            min-height: 0;
+            position: relative;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message.assistant {
+            justify-content: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 75%;
+            padding: 1.2rem 1.5rem;
+            border-radius: 20px;
+            word-wrap: break-word;
+            font-weight: 300;
+            line-height: 1.6;
+            letter-spacing: 0.3px;
+        }
+        
+        .user .message-bubble {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.2);
+        }
+        
+        .assistant .message-bubble {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 6px;
+            color: #e4e4e7;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .user .message-avatar {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .assistant .message-avatar {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+        }
+        
+        .input-area {
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 1.2rem 1.5rem;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 300;
+            color: #ffffff;
+            resize: none;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .message-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), 0 0 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .message-input::placeholder {
+            color: #6b7280;
+            font-weight: 300;
+        }
+        
+        .send-button {
+            padding: 1.2rem 2rem;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+            letter-spacing: 0.5px;
+        }
+        
+        .send-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #0284c7 100%);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 0.5rem 1rem;
+            color: #666;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+        
+        .typing-indicator.show {
+            display: block;
+        }
+        
+        .error-message {
+            margin: 1rem;
+            padding: 1rem;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            color: #856404;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .error-message .error-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message .error-details {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .retry-button {
+            margin-top: 0.5rem;
+            padding: 0.3rem 0.8rem;
+            background: #856404;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .retry-button:hover {
+            background: #6c5ce7;
+        }
+        
+        .network-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .network-status.offline {
+            background: #ff7675;
+            color: white;
+            display: block;
+        }
+        
+        .network-status.reconnecting {
+            background: #fdcb6e;
+            color: #2d3436;
+            display: block;
+        }
+        
+        /* モバイル対応の改善 */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                max-width: 100%;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .header {
+                padding: 0.5rem 1rem;
+                min-height: 56px;
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .hamburger-button {
+                padding: 0.4rem;
+            }
+            
+            .hamburger-icon {
+                width: 20px;
+                height: 20px;
+            }
+            
+            .menu-dropdown {
+                min-width: 180px;
+                right: -0.5rem;
+            }
+            
+            .menu-item {
+                padding: 0.6rem;
+                font-size: 0.85rem;
+            }
+            
+            .user-info {
+                font-size: 0.85rem;
+                max-width: 100px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            
+            .chat-messages {
+                padding: 0.5rem;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+                font-size: 0.9rem;
+                padding: 0.6rem 0.8rem;
+            }
+            
+            .message-avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 1rem;
+            }
+            
+            .input-area {
+                padding: 0.8rem;
+                gap: 0.3rem;
+            }
+            
+            .message-input {
+                font-size: 16px; /* iOS自動ズーム防止 */
+                min-height: 44px; /* iOS推奨タップサイズ */
+            }
+            
+            .send-button {
+                padding: 0.8rem 1rem;
+                min-width: 44px;
+                font-size: 0.9rem;
+            }
+            
+            .typing-indicator {
+                padding: 0.3rem 0.8rem;
+                margin: 0 0.5rem;
+            }
+            
+            .error-message {
+                margin: 0.5rem;
+                padding: 0.8rem;
+                font-size: 0.8rem;
+            }
+            
+            .network-status {
+                top: 5px;
+                right: 5px;
+                padding: 0.3rem 0.8rem;
+                font-size: 0.7rem;
+            }
+        }
+        
+        /* 小さなスマートフォン対応 */
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .header-left {
+                gap: 0.5rem;
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+            }
+            
+            .header h1 {
+                font-size: 1rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex-shrink: 1;
+                min-width: 0;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
+                font-size: 0.85rem;
+            }
+            
+            .input-area {
+                padding: 0.6rem;
+            }
+            
+            .message-input {
+                font-size: 16px;
+                padding: 0.6rem;
+            }
+            
+            .send-button {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* ランドスケープ対応 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .chat-messages {
+                padding: 0.3rem;
+            }
+            
+            .input-area {
+                padding: 0.5rem;
+            }
+            
+            .header {
+                padding: 0.5rem;
+            }
+            
+            .message-bubble {
+                padding: 0.5rem 0.7rem;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            .chat-container {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+            
+            .chat-messages {
+                background: #2d2d2d;
+            }
+            
+            .assistant .message-bubble {
+                background: #3a3a3a;
+                border-color: #555;
+                color: #ffffff;
+            }
+            
+            .message-input {
+                background: #3a3a3a;
+                border-color: #555;
+                color: #ffffff;
+            }
+            
+            .message-input::placeholder {
+                color: #aaa;
+            }
+            
+            .typing-indicator {
+                color: #aaa;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="networkStatus"></div>
+    
+    <div class="chat-container">
+        <div id="headerContainer">
+            <!-- フォールバックヘッダー -->
+            <div class="header">
+                <div class="header-left">
+                    <h1>🌟 元気チャット</h1>
+                </div>
+                <div class="hamburger-menu" id="hamburgerMenu">
+                    <button class="hamburger-button" onclick="toggleMenu()">
+                        <div class="hamburger-icon">
+                            <div class="hamburger-line"></div>
+                            <div class="hamburger-line"></div>
+                            <div class="hamburger-line"></div>
+                        </div>
+                    </button>
+                    <div class="menu-dropdown">
+                        <div class="menu-item" onclick="newSession()">
+                            <span class="menu-icon">✨</span>
+                            新規チャット
+                        </div>
+                        <a href="history.html" class="menu-item">
+                            <span class="menu-icon">📚</span>
+                            履歴
+                        </a>
+                        <a href="profile.html" class="menu-item">
+                            <span class="menu-icon">👤</span>
+                            プロフィール
+                        </a>
+                        <div class="menu-item" onclick="toggleTheme()" id="themeToggle">
+                            <span class="menu-icon">🌙</span>
+                            ダークモード
+                        </div>
+                        <div class="menu-item logout" onclick="logout()">
+                            <span class="menu-icon">🚪</span>
+                            ログアウト
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="errorContainer">
+            <!-- フォールバックエラー -->
+            <div class="error-message" id="errorMessage">
+                <div class="error-title">接続エラー</div>
+                <div class="error-details" id="errorDetails">サーバーに接続できませんでした。</div>
+                <button class="retry-button" onclick="retryLastMessage()">再試行</button>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="message-avatar">🌟</div>
+                <div class="message-bubble">
+                    こんにちは！元気チャットのゲンキちゃんです✨<br>
+                    今日はどんなことでお悩みですか？何でも気軽にお話しくださいね！
+                </div>
+            </div>
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            ゲンキちゃんが考え中...
+        </div>
+        
+        <div class="input-area">
+            <textarea 
+                class="message-input" 
+                id="messageInput" 
+                placeholder="メッセージを入力してください..."
+                rows="1"
+                onkeypress="handleKeyPress(event)"
+            ></textarea>
+            <button class="send-button" onclick="sendMessage()" id="sendButton">送信</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="auth.js"></script>
+    <script src="components.js"></script>
+    <script>
+        const API_BASE_URL = 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
+        
+        // Cognito設定
+        const COGNITO_CONFIG = {
+            userPoolId: 'ap-northeast-1_7CLrXZQiB',
+            clientId: '7af0tuk3i9r0lir5uhqduiep04',
+            clientSecret: '1t87e432carkn9lg6i4tjhmj8brkf7mp1vj8phqhkuljpqtqtnia',
+            region: 'ap-northeast-1'
+        };
+        
+        const cognitoAuth = new CognitoAuth(COGNITO_CONFIG);
+        let lastMessage = '';
+        let retryCount = 0;
+        const MAX_RETRY = 3;
+        let activeSessionId = null;
+        console.log('Initial activeSessionId:', activeSessionId);
+
+        // 基本的なメニュー機能を確実に提供
+        function toggleMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+
+        function newSession() {
+            localStorage.removeItem('currentSessionId');
+            location.reload();
+        }
+
+        function logout() {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                if (window.cognitoAuth) {
+                    cognitoAuth.signOut();
+                }
+                window.location.href = 'index.html';
+            }
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu && !menu.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+
+        // 統合された初期化処理
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event fired');
+            
+            // テーマ初期化
+            initializeTheme();
+            
+            // コンポーネントマネージャーがあれば使用、なければフォールバック
+            if (typeof componentManager !== 'undefined') {
+                try {
+                    componentManager.initializeCommon();
+                    console.log('ComponentManager initialized successfully');
+                } catch (error) {
+                    console.error('ComponentManager initialization failed:', error);
+                }
+            }
+            
+            // 認証状態を確認
+            if (!cognitoAuth.restoreSession()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // セッションIDを復元
+            const storedSessionId = localStorage.getItem('activeSessionId') || localStorage.getItem('currentSessionId');
+            activeSessionId = storedSessionId || null;
+            console.log('Restored session ID:', activeSessionId);
+            
+            // セッション復元チェック
+            const restoreData = localStorage.getItem('restoreSession');
+            if (restoreData) {
+                localStorage.removeItem('restoreSession');
+                restoreSession(JSON.parse(restoreData));
+            }
+            
+            // ネットワーク状態を初期化
+            updateNetworkStatus();
+            
+            // メッセージ入力のキーボードイベントを設定
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('keypress', handleKeyPress);
+                messageInput.focus();
+            }
+            
+            console.log('Chat initialization completed');
+        });
+
+        function addMessage(content, isUser = false) {
+            console.log('addMessage called with content:', content, 'isUser:', isUser);
+            const messagesContainer = document.getElementById('chatMessages');
+            console.log('messagesContainer element:', messagesContainer);
+            
+            if (!messagesContainer) {
+                console.error('Chat messages container not found');
+                return;
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🌟'}</div>
+                <div class="message-bubble">${content}</div>
+            `;
+            
+            console.log('Appending message to container');
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            console.log('Message added successfully');
+        }
+
+        function showTyping() {
+            document.getElementById('typingIndicator').classList.add('show');
+        }
+
+        function hideTyping() {
+            document.getElementById('typingIndicator').classList.remove('show');
+        }
+        
+        function showError(title, details, showRetry = true) {
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg) {
+                const errorTitle = errorMsg.querySelector('.error-title');
+                const errorDetails = errorMsg.querySelector('.error-details');
+                const retryButton = errorMsg.querySelector('.retry-button');
+                
+                if (errorTitle) errorTitle.textContent = title;
+                if (errorDetails) errorDetails.textContent = details;
+                if (retryButton) {
+                    retryButton.style.display = showRetry ? 'inline-block' : 'none';
+                }
+                
+                errorMsg.style.display = 'block';
+                setTimeout(() => hideError(), 5000);
+            }
+        }
+        
+        function hideError() {
+            const errorMsg = document.getElementById('errorMessage');
+            if (errorMsg) {
+                errorMsg.style.display = 'none';
+            }
+        }
+        
+        function getErrorMessage(error, statusCode) {
+            if (!navigator.onLine) {
+                return {
+                    title: '🔌 インターネット接続エラー',
+                    details: 'インターネット接続を確認してください'
+                };
+            }
+            
+            switch (statusCode) {
+                case 401:
+                    return {
+                        title: '🔐 認証エラー',
+                        details: 'ログインが必要です。再度ログインしてください'
+                    };
+                case 403:
+                    return {
+                        title: '❌ アクセス拒否',
+                        details: 'このリソースにアクセスする権限がありません'
+                    };
+                case 429:
+                    return {
+                        title: '⏰ レート制限',
+                        details: '送信回数が多すぎます。しばらくお待ちください'
+                    };
+                case 500:
+                case 502:
+                case 503:
+                    return {
+                        title: '🔧 サーバーエラー',
+                        details: 'サーバーに一時的な問題が発生しています'
+                    };
+                default:
+                    return {
+                        title: '⚠️ 接続エラー',
+                        details: error.message || '予期しないエラーが発生しました'
+                    };
+            }
+        }
+        
+        // ネットワーク状態監視
+        function updateNetworkStatus() {
+            const networkStatus = document.getElementById('networkStatus');
+            
+            if (!navigator.onLine) {
+                networkStatus.className = 'network-status offline';
+                networkStatus.textContent = '🔌 オフラインです';
+            } else {
+                networkStatus.className = 'network-status';
+            }
+        }
+        
+        // オンライン/オフライン状態の監視
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        async function sendMessage() {
+            console.log('sendMessage function called');
+            const input = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            console.log('input element:', input);
+            console.log('sendButton element:', sendButton);
+            
+            if (!input) {
+                console.error('Message input element not found');
+                return;
+            }
+            
+            const message = input.value.trim();
+            console.log('Message content:', message);
+            
+            if (!message) {
+                console.log('Empty message, returning');
+                return;
+            }
+            
+            // エラーを隠す
+            hideError();
+            
+            // 最後のメッセージを保存（再試行用）
+            lastMessage = message;
+            console.log('Sending message with session ID:', activeSessionId);
+            console.log('Request body will be:', JSON.stringify({ message, sessionId: activeSessionId }));
+            
+            // ユーザーメッセージを表示
+            console.log('Calling addMessage with:', message, true);
+            addMessage(message, true);
+            input.value = '';
+            
+            // 送信ボタンを無効化
+            if (sendButton) {
+                sendButton.disabled = true;
+            }
+            showTyping();
+            
+            try {
+                // 実際のAPI呼び出し（認証付き）
+                const idToken = getIdToken();
+                console.log('Retrieved idToken:', idToken ? 'Valid token' : 'NULL token');
+                console.log('About to make fetch request. activeSessionId at fetch time:', activeSessionId);
+                
+                if (!idToken) {
+                    console.error('No valid ID token available');
+                    throw new Error('認証トークンが無効です。再ログインしてください。');
+                }
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ 
+                        message,
+                        sessionId: activeSessionId === undefined ? null : activeSessionId  // 継続セッションIDを送信（nullの場合は新規セッション）
+                    })
+                });
+                
+                hideTyping();
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // セッションIDを保存（継続用）
+                console.log('Backend response data:', data);
+                if (data && data.sessionId) {
+                    activeSessionId = data.sessionId;
+                    localStorage.setItem('activeSessionId', activeSessionId);
+                    console.log('Saved session ID to localStorage:', activeSessionId);
+                    console.log('localStorage now contains:', localStorage.getItem('activeSessionId'));
+                    console.log('activeSessionId after save:', activeSessionId, 'Type:', typeof activeSessionId);
+                } else {
+                    console.log('Warning: No sessionId received from backend');
+                    console.log('Full backend response:', JSON.stringify(data));
+                }
+                
+                addMessage(data.reply || 'エラー: 応答が取得できませんでした');
+                sendButton.disabled = false;
+                retryCount = 0; // 成功時はリセット
+                
+            } catch (error) {
+                hideTyping();
+                console.error('送信エラー:', error);
+                
+                // 詳細なエラーハンドリング
+                const statusCode = error.status || 0;
+                const errorInfo = getErrorMessage(error, statusCode);
+                
+                // 認証エラーの場合はログアウト
+                if (statusCode === 401) {
+                    setTimeout(() => {
+                        cognitoAuth.signOut();
+                        window.location.href = 'index.html';
+                    }, 3000);
+                }
+                
+                // エラーメッセージを表示
+                showError(errorInfo.title, errorInfo.details, retryCount < MAX_RETRY);
+                
+                retryCount++;
+                sendButton.disabled = false;
+            }
+        }
+
+        function handleKeyPress(event) {
+            console.log('handleKeyPress called, key:', event.key);
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                console.log('Enter pressed, calling sendMessage');
+                sendMessage();
+            }
+        }
+
+        // テスト用の関数
+        function testSendMessage() {
+            console.log('Test function called');
+            addMessage('テストメッセージ', true);
+        }
+
+        // ページ読み込み時のテスト
+        window.addEventListener('load', function() {
+            console.log('Page loaded, testing addMessage...');
+            setTimeout(() => {
+                console.log('Running test message');
+                addMessage('システム準備完了', false);
+            }, 1000);
+        });
+
+        // 重複した初期化は削除 - 上の統合された初期化処理を使用
+        
+        // ログアウト機能
+        async function logout() {
+            if (confirm('ログアウトしますか？')) {
+                await cognitoAuth.signOut();
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // 履歴表示機能
+        function showHistory() {
+            window.location.href = 'history.html';
+        }
+
+        // ハンバーガーメニューの切り替え
+        function toggleMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            menu.classList.toggle('active');
+        }
+
+        // テーマ切り替え
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const icon = newTheme === 'light' ? '🌙' : '☀️';
+                const text = newTheme === 'light' ? 'ダークモード' : 'ライトモード';
+                themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+            }
+        }
+
+        // テーマを初期化
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            setTimeout(() => {
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) {
+                    const icon = savedTheme === 'dark' ? '🌙' : '☀️';
+                    const text = savedTheme === 'dark' ? 'ダークモード' : 'ライトモード';
+                    themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+                }
+            }, 100);
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu && !menu.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+        
+        // IDトークンを取得する関数
+        function getIdToken() {
+            return cognitoAuth.getIdToken();
+        }
+        
+        // セッション復元機能
+        function restoreSession(sessionData) {
+            if (!sessionData || !sessionData.messages) return;
+            
+            // セッションIDを設定
+            if (sessionData.sessionId) {
+                activeSessionId = sessionData.sessionId;
+                localStorage.setItem('activeSessionId', activeSessionId);
+            }
+            
+            // 既存のメッセージをクリア（初期メッセージ以外）
+            const chatMessages = document.getElementById('chatMessages');
+            const initialMessage = chatMessages.querySelector('.message.assistant');
+            chatMessages.innerHTML = '';
+            
+            // 初期メッセージを保持
+            if (initialMessage) {
+                chatMessages.appendChild(initialMessage);
+            }
+            
+            // 履歴メッセージを復元
+            sessionData.messages.forEach(msg => {
+                addMessage(msg.message, msg.role === 'user');
+            });
+            
+            // スクロールを最下部に
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // 新規セッション開始
+        function newSession() {
+            if (confirm('新しいチャットを開始しますか？現在の会話は終了します。')) {
+                // セッションIDをリセット
+                activeSessionId = null;
+                localStorage.removeItem('activeSessionId');
+                
+                // チャットメッセージをクリア
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = `
+                    <div class="message assistant">
+                        <div class="message-avatar">🌟</div>
+                        <div class="message-bubble">
+                            こんにちは！元気チャットのゲンキちゃんです✨<br>
+                            今日はどんなことでお悩みですか？何でも気軽にお話しくださいね！
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 再試行機能
+        async function retryLastMessage() {
+            if (!lastMessage) return;
+            
+            const input = document.getElementById('messageInput');
+            input.value = lastMessage;
+            await sendMessage();
+        }
+    </script>
+</body>
+</html>

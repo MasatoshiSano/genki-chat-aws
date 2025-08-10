@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロフィール設定 - 元気チャット</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="components.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- ヘッダー (フォールバック) -->
+        <div class="header" id="headerContainer">
+            <div class="header-left">
+                <a href="chat.html" class="back-button">
+                    <span>←</span>
+                    チャット
+                </a>
+                <h1>👤 プロフィール</h1>
+            </div>
+            <div class="hamburger-menu" id="hamburgerMenu">
+                <button class="hamburger-button" onclick="toggleMenu()">
+                    <div class="hamburger-icon">
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                        <div class="hamburger-line"></div>
+                    </div>
+                </button>
+                <div class="menu-dropdown">
+                    <a href="chat.html" class="menu-item">
+                        <span class="menu-icon">💬</span>
+                        新規チャット
+                    </a>
+                    <a href="profile.html" class="menu-item">
+                        <span class="menu-icon">👤</span>
+                        プロフィール
+                    </a>
+                    <div class="menu-item" onclick="toggleTheme()" id="themeToggle">
+                        <span class="menu-icon">🌙</span>
+                        ダークモード
+                    </div>
+                    <div class="menu-item logout" onclick="logout()">
+                        <span class="menu-icon">🚪</span>
+                        ログアウト
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- プロフィール設定画面 -->
+        <div class="container">
+            <div class="content">
+                <div class="profile-container">
+            <h2>プロフィール設定</h2>
+            <p class="profile-description">あなたの情報を入力することで、エージェントがより適切な会話をしてくれます。</p>
+            
+            <form id="profileForm" class="profile-form">
+                <!-- ユーザー名 -->
+                <div class="form-group">
+                    <label for="userName">ユーザー名</label>
+                    <input type="text" id="userName" name="userName" placeholder="どのように呼ばれたいですか？" maxlength="50">
+                    <small>エージェントがあなたを呼ぶときの名前です</small>
+                </div>
+
+                <!-- 年齢 -->
+                <div class="form-group">
+                    <label for="age">年齢</label>
+                    <select id="age" name="age">
+                        <option value="">選択してください</option>
+                        <option value="10代">10代</option>
+                        <option value="20代">20代</option>
+                        <option value="30代">30代</option>
+                        <option value="40代">40代</option>
+                        <option value="50代">50代</option>
+                        <option value="60代以上">60代以上</option>
+                    </select>
+                    <small>年齢に適した話し方で会話します</small>
+                </div>
+
+                <!-- 職業 -->
+                <div class="form-group">
+                    <label for="occupation">職業</label>
+                    <input type="text" id="occupation" name="occupation" placeholder="例：学生、会社員、エンジニア、主婦など" maxlength="50">
+                    <small>職業に関連した話題やアドバイスを提供します</small>
+                </div>
+
+                <!-- 性別 -->
+                <div class="form-group">
+                    <label for="gender">性別</label>
+                    <select id="gender" name="gender">
+                        <option value="">選択してください</option>
+                        <option value="男性">男性</option>
+                        <option value="女性">女性</option>
+                        <option value="その他">その他</option>
+                        <option value="答えない">答えない</option>
+                    </select>
+                    <small>適切な敬語や話し方で会話します</small>
+                </div>
+
+                <!-- 応答の長さ -->
+                <div class="form-group">
+                    <label for="responseLength">応答の長さ</label>
+                    <select id="responseLength" name="responseLength">
+                        <option value="short">短め（1-2行）</option>
+                        <option value="medium" selected>普通（2-4行）</option>
+                        <option value="long">詳しく（4-8行）</option>
+                    </select>
+                    <small>エージェントの返信の長さを設定できます</small>
+                </div>
+
+                <!-- 保存ボタン -->
+                <div class="form-actions">
+                    <button type="submit" class="save-btn" id="saveBtn">💾 設定を保存</button>
+                    <button type="button" class="reset-btn" id="resetBtn">🔄 リセット</button>
+                </div>
+            </form>
+
+                <!-- 保存状況 -->
+                <div id="saveStatus" class="save-status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Profile page initialized');
+            
+            // コンポーネントマネージャーの初期化
+            if (window.componentManager) {
+                try {
+                    window.componentManager.initializeCommon();
+                    console.log('ComponentManager initialized successfully');
+                } catch (error) {
+                    console.error('ComponentManager initialization failed:', error);
+                }
+            }
+            
+            // テーマ初期化
+            initializeTheme();
+            
+            // プロフィール機能の初期化
+            initializeProfile();
+        });
+
+        // プロフィール機能
+        function initializeProfile() {
+            // 保存されたプロフィールを読み込み
+            loadProfile();
+            
+            // フォーム送信イベント
+            document.getElementById('profileForm').addEventListener('submit', saveProfile);
+            
+            // リセットボタン
+            document.getElementById('resetBtn').addEventListener('click', resetProfile);
+        }
+
+        // プロフィール読み込み
+        async function loadProfile() {
+            try {
+                // まずサーバーから読み込みを試行
+                await loadProfileFromServer();
+                
+                // サーバーから読み込めなかった場合はローカルストレージから
+                const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+                
+                // フォームがまだ空の場合のみローカルデータを使用
+                if (!document.getElementById('userName').value && profile.userName) {
+                    document.getElementById('userName').value = profile.userName;
+                }
+                if (!document.getElementById('age').value && profile.age) {
+                    document.getElementById('age').value = profile.age;
+                }
+                if (!document.getElementById('occupation').value && profile.occupation) {
+                    document.getElementById('occupation').value = profile.occupation;
+                }
+                if (!document.getElementById('gender').value && profile.gender) {
+                    document.getElementById('gender').value = profile.gender;
+                }
+                if (!document.getElementById('responseLength').value && profile.responseLength) {
+                    document.getElementById('responseLength').value = profile.responseLength;
+                }
+                
+                console.log('Profile loaded:', profile);
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
+        }
+
+        // プロフィール保存
+        async function saveProfile(event) {
+            event.preventDefault();
+            
+            const saveBtn = document.getElementById('saveBtn');
+            const statusDiv = document.getElementById('saveStatus');
+            
+            try {
+                saveBtn.disabled = true;
+                saveBtn.textContent = '💾 保存中...';
+                
+                // フォームデータを取得
+                const formData = new FormData(event.target);
+                const profile = {
+                    userName: formData.get('userName') || '',
+                    age: formData.get('age') || '',
+                    occupation: formData.get('occupation') || '',
+                    gender: formData.get('gender') || '',
+                    responseLength: formData.get('responseLength') || 'medium',
+                    updatedAt: new Date().toISOString()
+                };
+                
+                console.log('Saving profile:', profile);
+                
+                // ローカルストレージに保存
+                localStorage.setItem('userProfile', JSON.stringify(profile));
+                
+                // サーバーに保存
+                await saveProfileToServer(profile);
+                
+                // 成功メッセージ
+                showStatus('✅ プロフィールが保存されました！', 'success');
+                
+            } catch (error) {
+                console.error('Failed to save profile:', error);
+                showStatus('❌ 保存に失敗しました。もう一度お試しください。', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 設定を保存';
+            }
+        }
+
+        // サーバーにプロフィールを保存
+        async function saveProfileToServer(profile) {
+            const token = localStorage.getItem('idToken');
+            if (!token) {
+                throw new Error('認証トークンがありません');
+            }
+
+            const response = await fetch('https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod/chat/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(profile)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'サーバーエラーが発生しました');
+            }
+
+            const result = await response.json();
+            console.log('Profile saved to server:', result);
+            return result;
+        }
+
+        // サーバーからプロフィールを読み込み
+        async function loadProfileFromServer() {
+            try {
+                const token = localStorage.getItem('idToken');
+                if (!token) {
+                    console.log('認証トークンがありません。ローカルから読み込みます。');
+                    return;
+                }
+
+                const response = await fetch('https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod/chat/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const profile = await response.json();
+                    console.log('Profile loaded from server:', profile);
+                    
+                    // フォームにデータを設定
+                    if (profile.userName) document.getElementById('userName').value = profile.userName;
+                    if (profile.age) document.getElementById('age').value = profile.age;
+                    if (profile.occupation) document.getElementById('occupation').value = profile.occupation;
+                    if (profile.gender) document.getElementById('gender').value = profile.gender;
+                    if (profile.responseLength) document.getElementById('responseLength').value = profile.responseLength;
+                    
+                    // ローカルストレージも更新
+                    localStorage.setItem('userProfile', JSON.stringify(profile));
+                } else {
+                    console.log('サーバーからの読み込みに失敗。ローカルから読み込みます。');
+                }
+            } catch (error) {
+                console.error('Failed to load profile from server:', error);
+                console.log('サーバーからの読み込みに失敗。ローカルから読み込みます。');
+            }
+        }
+
+        // プロフィールリセット
+        function resetProfile() {
+            if (confirm('プロフィール設定をリセットしますか？')) {
+                document.getElementById('profileForm').reset();
+                document.getElementById('responseLength').value = 'medium';
+                localStorage.removeItem('userProfile');
+                showStatus('🔄 プロフィールがリセットされました', 'info');
+            }
+        }
+
+        // ステータス表示
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `save-status ${type}`;
+            
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = 'save-status';
+            }, 3000);
+        }
+
+        // テーマ切り替え関数
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const icon = newTheme === 'light' ? '🌙' : '☀️';
+                const text = newTheme === 'light' ? 'ダークモード' : 'ライトモード';
+                themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+            }
+        }
+
+        // テーマ初期化関数
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            setTimeout(() => {
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) {
+                    const icon = savedTheme === 'dark' ? '🌙' : '☀️';
+                    const text = savedTheme === 'dark' ? 'ダークモード' : 'ライトモード';
+                    themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+                }
+            }, 100);
+        }
+
+        // ハンバーガーメニュー切り替え
+        function toggleMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            menu.classList.toggle('active');
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu && !menu.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+
+        // ログアウト関数
+        function logout() {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元気チャット</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'NotoSansCJK', sans-serif;
+            font-weight: 300;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e4e4e7;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            padding: 3rem;
+            max-width: 440px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+        }
+        
+        h1 {
+            color: #ffffff;
+            margin-bottom: 0.8rem;
+            font-size: 2.2rem;
+            font-weight: 200;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #9ca3af;
+            margin-bottom: 3rem;
+            font-size: 1rem;
+            font-weight: 300;
+            line-height: 1.6;
+            letter-spacing: 0.5px;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        input {
+            padding: 1.2rem 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 300;
+            color: #ffffff;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), 0 0 20px rgba(99, 102, 241, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        button {
+            padding: 1.2rem 2rem;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.3);
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #0284c7 100%);
+        }
+        
+        .signup-link {
+            margin-top: 1.5rem;
+            color: #06b6d4;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 300;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+        }
+        
+        .signup-link:hover {
+            color: #0891b2;
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+        }
+        
+        .status {
+            margin-top: 1.5rem;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            display: none;
+            font-weight: 300;
+            backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .form-toggle {
+            display: none;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                max-width: 100%;
+                padding: 2rem;
+                margin: 0;
+                border-radius: 20px;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .subtitle {
+                font-size: 0.95rem;
+                margin-bottom: 2.5rem;
+            }
+            
+            input {
+                font-size: 16px; /* iOS自動ズーム防止 */
+                padding: 1.3rem 1.5rem;
+                min-height: 56px; /* iOS推奨タップサイズ */
+            }
+            
+            button {
+                padding: 1.3rem 2rem;
+                min-height: 56px;
+                font-size: 1.1rem;
+            }
+            
+            .signup-link {
+                padding: 0.8rem;
+                min-height: 48px;
+                display: inline-block;
+                line-height: 32px;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+            
+            .container {
+                border-radius: 15px;
+                padding: 1rem;
+            }
+            
+            .logo {
+                font-size: 2rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            h1 {
+                font-size: 1.3rem;
+            }
+            
+            .subtitle {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌟</div>
+        <h1>元気チャット</h1>
+        <p class="subtitle">あなたの毎日を明るくするAIアシスタント</p>
+        
+        <!-- ログインフォーム -->
+        <div class="login-form" id="loginForm">
+            <input type="email" id="email" placeholder="メールアドレス" required>
+            <input type="password" id="password" placeholder="パスワード" required>
+            <button onclick="login()" id="loginButton">ログイン</button>
+            <a href="#" class="signup-link" onclick="showSignup()">新規登録はこちら</a>
+        </div>
+        
+        <!-- 新規登録フォーム -->
+        <div class="login-form form-toggle" id="signupForm">
+            <input type="email" id="signupEmail" placeholder="メールアドレス" required>
+            <input type="password" id="signupPassword" placeholder="パスワード（8文字以上）" required>
+            <input type="password" id="confirmPassword" placeholder="パスワード（再入力）" required>
+            <button onclick="signup()" id="signupButton">新規登録</button>
+            <a href="#" class="signup-link" onclick="showLogin()">ログインに戻る</a>
+        </div>
+        
+        <!-- 確認コード入力フォーム -->
+        <div class="login-form form-toggle" id="confirmForm">
+            <p style="margin-bottom: 1rem; color: #666; font-size: 0.9rem;">メールに送信された確認コードを入力してください</p>
+            <input type="text" id="confirmationCode" placeholder="確認コード" required>
+            <button onclick="confirmSignup()" id="confirmButton">アカウントを有効化</button>
+            <a href="#" class="signup-link" onclick="showLogin()">ログインに戻る</a>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Cognito設定
+        const COGNITO_CONFIG = {
+            userPoolId: 'ap-northeast-1_7CLrXZQiB',
+            clientId: '7af0tuk3i9r0lir5uhqduiep04',
+            clientSecret: '1t87e432carkn9lg6i4tjhmj8brkf7mp1vj8phqhkuljpqtqtnia',
+            region: 'ap-northeast-1'
+        };
+        
+        // Cognito認証インスタンス
+        const cognitoAuth = new CognitoAuth(COGNITO_CONFIG);
+        let pendingEmail = '';
+
+        // ページ読み込み時にセッションを確認
+        document.addEventListener('DOMContentLoaded', function() {
+            if (cognitoAuth.restoreSession()) {
+                // 既にログイン済みの場合はチャットページに遷移
+                window.location.href = 'chat.html';
+            }
+        });
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        function showLogin() {
+            document.getElementById('loginForm').style.display = 'flex';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('confirmForm').style.display = 'none';
+            hideStatus();
+        }
+        
+        function showSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'flex';
+            document.getElementById('confirmForm').style.display = 'none';
+            hideStatus();
+        }
+        
+        function showConfirm() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'none';
+            document.getElementById('confirmForm').style.display = 'flex';
+            hideStatus();
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showStatus('メールアドレスとパスワードを入力してください', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('loginButton');
+            button.disabled = true;
+            button.textContent = 'ログイン中...';
+            
+            try {
+                const result = await cognitoAuth.signIn(email, password);
+                
+                if (result.success) {
+                    showStatus('ログイン成功！チャットページに遷移中...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'chat.html';
+                    }, 1000);
+                } else {
+                    showStatus(result.error || 'ログインに失敗しました', 'error');
+                }
+            } catch (error) {
+                showStatus('ログインエラー: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'ログイン';
+            }
+        }
+        
+        async function signup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!email || !password || !confirmPassword) {
+                showStatus('すべての項目を入力してください', 'error');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showStatus('パスワードが一致しません', 'error');
+                return;
+            }
+            
+            if (password.length < 8) {
+                showStatus('パスワードは8文字以上で入力してください', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('signupButton');
+            button.disabled = true;
+            button.textContent = '登録中...';
+            
+            try {
+                const result = await cognitoAuth.signUp(email, password, {
+                    email: email
+                });
+                
+                if (result.success) {
+                    pendingEmail = email;
+                    showStatus('登録成功！メールに確認コードを送信しました', 'success');
+                    setTimeout(() => {
+                        showConfirm();
+                    }, 2000);
+                } else {
+                    showStatus(result.error || '登録に失敗しました', 'error');
+                }
+            } catch (error) {
+                showStatus('登録エラー: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = '新規登録';
+            }
+        }
+        
+        async function confirmSignup() {
+            const code = document.getElementById('confirmationCode').value;
+            
+            if (!code) {
+                showStatus('確認コードを入力してください', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('confirmButton');
+            button.disabled = true;
+            button.textContent = '確認中...';
+            
+            try {
+                const result = await cognitoAuth.confirmSignUp(pendingEmail, code);
+                
+                if (result.success) {
+                    showStatus('アカウントの有効化が完了しました！ログインしてください', 'success');
+                    setTimeout(() => {
+                        showLogin();
+                    }, 2000);
+                } else {
+                    showStatus(result.error || '確認に失敗しました', 'error');
+                }
+            } catch (error) {
+                showStatus('確認エラー: ' + error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'アカウントを有効化';
+            }
+        }
+    </script>
+</body>
+</html>

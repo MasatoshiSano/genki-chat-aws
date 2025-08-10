@@ -1,0 +1,31 @@
+{
+    "CallerReference": "genki-chat-1754637038",
+    "Comment": "CloudFront distribution for Genki Chat frontend",
+    "Enabled": true,
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "S3-genki-chat-frontend-1754637038",
+                "DomainName": "genki-chat-frontend-1754637038.s3-website-ap-northeast-1.amazonaws.com",
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "http-only"
+                }
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "S3-genki-chat-frontend-1754637038",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "MinTTL": 0,
+        "ForwardedValues": {
+            "QueryString": false,
+            "Cookies": {
+                "Forward": "none"
+            }
+        }
+    },
+    "PriceClass": "PriceClass_100"
+}

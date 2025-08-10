@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャット履歴 - 元気チャット</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 履歴ページ固有のスタイル */
+        
+        .hamburger-menu {
+            position: relative;
+        }
+        
+        .hamburger-button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .hamburger-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .hamburger-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+        
+        .hamburger-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            border-radius: 1px;
+            transition: all 0.3s ease;
+            transform-origin: center;
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        
+        .hamburger-menu.active .hamburger-line:nth-child(3) {
+            transform: rotate(-45deg) translate(6px, -6px);
+        }
+        
+        .menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: rgba(20, 20, 30, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 0.5rem;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .hamburger-menu.active .menu-dropdown {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: #e4e4e7;
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+        
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+        
+        .menu-item.logout {
+            color: #ef4444;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+        }
+        
+        .menu-item.logout:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .menu-icon {
+            font-size: 1.1rem;
+            min-width: 20px;
+        }
+        
+        .back-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e4e4e7;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 300;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(99, 102, 241, 0.3);
+        }
+        
+        .content {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .history-item {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .history-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        
+        .history-date {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            margin-bottom: 0.8rem;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+        
+        .history-preview {
+            font-size: 1rem;
+            color: #e4e4e7;
+            font-weight: 300;
+            line-height: 1.6;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .history-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .history-item:hover .history-actions {
+            opacity: 1;
+        }
+        
+        .action-button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 400;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-continue {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        
+        .btn-continue:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.3);
+        }
+        
+        .btn-view {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: linear-gradient(135deg, #5b21b6, #7c3aed);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-delete:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.4);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+        
+        .history-item-content {
+            flex: 1;
+        }
+        
+        .history-item-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding: 0.5rem;
+            margin: -0.5rem 0.5rem -0.5rem 1rem;
+        }
+        
+        .history-item:hover .history-item-actions {
+            opacity: 1;
+        }
+        
+        .history-item-delete {
+            display: flex;
+            align-items: center;
+            opacity: 1; /* 削除ボタンは常時表示 */
+        }
+        
+        .history-item-delete .btn-delete {
+            min-width: 40px;
+            padding: 0.5rem;
+            font-size: 1.2rem;
+            border-radius: 8px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #9ca3af;
+            font-style: italic;
+            font-weight: 300;
+            font-size: 1.1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 1.5rem;
+            color: #9ca3af;
+        }
+        
+        .empty-state .icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.6;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 1.2rem;
+            color: #ffffff;
+            font-weight: 300;
+            font-size: 1.4rem;
+        }
+        
+        .empty-state p {
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        
+        .start-chat-button {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+            color: white;
+            border: none;
+            padding: 1.2rem 2.5rem;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+            letter-spacing: 0.5px;
+        }
+        
+        .start-chat-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #0284c7 100%);
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            padding: 1.2rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 300;
+        }
+        
+        /* カスタム確認ダイアログ */
+        .custom-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .custom-dialog {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+        
+        .dialog-title {
+            color: #ef4444;
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .dialog-message {
+            color: #e4e4e7;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        .dialog-button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .dialog-button.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dialog-button.cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .dialog-button.confirm {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .dialog-button.confirm:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+            
+            .header {
+                padding: 0.5rem 1rem;
+                min-height: 56px;
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .back-button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+            
+            .hamburger-button {
+                padding: 0.4rem;
+            }
+            
+            .hamburger-icon {
+                width: 20px;
+                height: 20px;
+            }
+            
+            .menu-dropdown {
+                min-width: 180px;
+                right: -0.5rem;
+            }
+            
+            .menu-item {
+                padding: 0.6rem;
+                font-size: 0.85rem;
+            }
+            
+            .history-item {
+                margin: 0 -0.5rem;
+                border-left: none;
+                border-right: none;
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .header-left {
+                gap: 0.5rem;
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+            }
+            
+            .header h1 {
+                font-size: 1rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                flex-shrink: 1;
+                min-width: 0;
+            }
+            
+            .back-button span {
+                display: none;
+            }
+            
+            .back-button {
+                min-width: auto;
+                padding: 0.4rem 0.6rem;
+                flex-shrink: 0;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="headerContainer">
+            <!-- フォールバックヘッダー -->
+            <div class="header">
+                <div class="header-left">
+                    <a href="chat.html" class="back-button">
+                        <span>←</span>
+                        チャット
+                    </a>
+                    <h1>📚 履歴</h1>
+                </div>
+                <div class="hamburger-menu" id="hamburgerMenu">
+                    <button class="hamburger-button" onclick="toggleMenu()">
+                        <div class="hamburger-icon">
+                            <div class="hamburger-line"></div>
+                            <div class="hamburger-line"></div>
+                            <div class="hamburger-line"></div>
+                        </div>
+                    </button>
+                    <div class="menu-dropdown">
+                        <a href="chat.html" class="menu-item">
+                            <span class="menu-icon">💬</span>
+                            新規チャット
+                        </a>
+                        <a href="profile.html" class="menu-item">
+                            <span class="menu-icon">👤</span>
+                            プロフィール
+                        </a>
+                        <div class="menu-item" onclick="toggleTheme()" id="themeToggle">
+                            <span class="menu-icon">🌙</span>
+                            ダークモード
+                        </div>
+                        <div class="menu-item" onclick="clearAllHistory()">
+                            <span class="menu-icon">🗑️</span>
+                            すべて削除
+                        </div>
+                        <div class="menu-item logout" onclick="logout()">
+                            <span class="menu-icon">🚪</span>
+                            ログアウト
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="loadingState" class="loading">
+                履歴を読み込み中...
+            </div>
+            
+            <div id="errorState" class="error-message" style="display: none;"></div>
+            
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="icon">💬</div>
+                <h3>まだチャット履歴がありません</h3>
+                <p>最初の会話を始めて、素敵な思い出を作りましょう！</p>
+                <button class="start-chat-button" onclick="goToChat()">チャットを始める</button>
+            </div>
+            
+            <div id="historyList" class="history-list" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- カスタム確認ダイアログ -->
+    <div class="custom-dialog-overlay" id="deleteConfirmDialog">
+        <div class="custom-dialog">
+            <div class="dialog-title">
+                🗑️ チャット履歴の削除
+            </div>
+            <div class="dialog-message">
+                このチャット履歴を完全に削除してもよろしいですか？<br>
+                <strong>この操作は取り消せません。</strong>
+            </div>
+            <div class="dialog-buttons">
+                <button class="dialog-button cancel" onclick="hideDeleteConfirm()">キャンセル</button>
+                <button class="dialog-button confirm" onclick="confirmDelete()">削除する</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="auth.js"></script>
+    <script src="components.js"></script>
+    <script>
+        const API_BASE_URL = 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
+        console.log('API_BASE_URL set to:', API_BASE_URL);
+        
+        // Cognito設定
+        const COGNITO_CONFIG = {
+            userPoolId: 'ap-northeast-1_7CLrXZQiB',
+            clientId: '7af0tuk3i9r0lir5uhqduiep04',
+            clientSecret: '1t87e432carkn9lg6i4tjhmj8brkf7mp1vj8phqhkuljpqtqtnia',
+            region: 'ap-northeast-1'
+        };
+        
+        const cognitoAuth = new CognitoAuth(COGNITO_CONFIG);
+        let pendingDeleteSessionId = null;
+        
+        // 基本的なメニュー機能を確実に提供
+        function toggleMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu) {
+                menu.classList.toggle('active');
+            }
+        }
+
+        function logout() {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                if (window.cognitoAuth) {
+                    cognitoAuth.signOut();
+                }
+                window.location.href = 'index.html';
+            }
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu && !menu.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+
+        // 重複した初期化処理を削除（下の統合版を使用）
+        
+        // カスタム確認ダイアログ表示
+        function showDeleteConfirm(sessionId) {
+            pendingDeleteSessionId = sessionId;
+            document.getElementById('deleteConfirmDialog').style.display = 'flex';
+        }
+        
+        // カスタム確認ダイアログ非表示
+        function hideDeleteConfirm() {
+            pendingDeleteSessionId = null;
+            document.getElementById('deleteConfirmDialog').style.display = 'none';
+        }
+        
+        // 削除実行
+        async function confirmDelete() {
+            hideDeleteConfirm();
+            if (pendingDeleteSessionId) {
+                await performDelete(pendingDeleteSessionId);
+            }
+        }
+        
+        // すべての履歴を削除
+        async function clearAllHistory() {
+            if (!confirm('すべてのチャット履歴を削除してもよろしいですか？\n\nこの操作は取り消せません。')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // 現在の履歴一覧を取得
+                const idToken = cognitoAuth.getIdToken();
+                const response = await fetch(`${API_BASE_URL}/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('履歴の取得に失敗しました');
+                }
+                
+                const sessions = await response.json();
+                console.log('削除対象セッション数:', sessions.length);
+                
+                // 各セッションを削除
+                let deletedCount = 0;
+                for (const session of sessions) {
+                    try {
+                        const deleteResponse = await fetch(`${API_BASE_URL}/history/${session.sessionId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${idToken}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (deleteResponse.ok) {
+                            deletedCount++;
+                        }
+                    } catch (error) {
+                        console.error('セッション削除エラー:', session.sessionId, error);
+                    }
+                }
+                
+                alert(`✅ 一括削除完了\n${deletedCount}件のチャット履歴を削除しました`);
+                await loadHistory();
+                
+            } catch (error) {
+                console.error('一括削除エラー:', error);
+                alert('一括削除に失敗しました: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 統合初期化処理
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('DOMContentLoaded fired');
+            
+            // テーマ初期化
+            initializeTheme();
+            
+            // コンポーネントマネージャーがあれば使用、なければフォールバック
+            if (typeof componentManager !== 'undefined') {
+                try {
+                    componentManager.initializeCommon();
+                    console.log('ComponentManager initialized successfully');
+                } catch (error) {
+                    console.error('ComponentManager initialization failed:', error);
+                }
+            }
+            
+            // 認証状態を確認
+            if (!cognitoAuth.restoreSession()) {
+                console.log('Authentication failed, redirecting to login');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            console.log('Authentication successful, loading history');
+            await loadHistory();
+        });
+
+        // テーマ切り替え
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const icon = newTheme === 'light' ? '🌙' : '☀️';
+                const text = newTheme === 'light' ? 'ダークモード' : 'ライトモード';
+                themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+            }
+        }
+
+        // テーマを初期化
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            
+            // メニューのテーマトグルテキストを更新
+            setTimeout(() => {
+                const themeToggle = document.getElementById('themeToggle');
+                if (themeToggle) {
+                    const icon = savedTheme === 'dark' ? '🌙' : '☀️';
+                    const text = savedTheme === 'dark' ? 'ダークモード' : 'ライトモード';
+                    themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+                }
+            }, 100);
+        }
+
+        // 履歴読み込み
+        async function loadHistory() {
+            console.log('loadHistory function called');
+            try {
+                const idToken = cognitoAuth.getIdToken();
+                console.log('ID Token available:', !!idToken);
+                
+                const url = `${API_BASE_URL}/history`;
+                console.log('Fetching history from:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response body:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const historyData = await response.json();
+                console.log('History data received:', historyData);
+                displayHistory(historyData);
+                
+            } catch (error) {
+                console.error('履歴読み込みエラー:', error);
+                showError('履歴の読み込みに失敗しました: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 履歴表示
+        function displayHistory(historyData) {
+            if (!historyData || historyData.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+
+            historyData.forEach(session => {
+                const historyItem = createHistoryItem(session);
+                historyList.appendChild(historyItem);
+            });
+
+            historyList.style.display = 'flex';
+        }
+
+        // 履歴アイテム作成
+        function createHistoryItem(session) {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            
+            // アイテム全体のクリックではなく、コンテンツ部分のクリックのみで表示
+            item.onclick = (e) => {
+                // ボタンエリアがクリックされた場合は何もしない
+                if (e.target.closest('.history-item-actions') || e.target.closest('.history-item-delete')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                viewSession(session.sessionId);
+            };
+
+            const date = formatDate(session.date);
+
+            item.innerHTML = `
+                <div class="history-item-content">
+                    <div class="history-date">${date}</div>
+                    <div class="history-preview">${session.preview || 'チャット履歴'}</div>
+                </div>
+                <div class="history-item-actions">
+                    <button class="action-button btn-continue" onclick="event.stopPropagation(); continueSession('${session.sessionId}')">継続</button>
+                    <button class="action-button btn-view" onclick="event.stopPropagation(); viewSession('${session.sessionId}')">表示</button>
+                </div>
+                <div class="history-item-delete">
+                    <button class="action-button btn-delete" onclick="event.stopPropagation(); deleteSession('${session.sessionId}')">🗑️</button>
+                </div>
+            `;
+
+            return item;
+        }
+
+        // セッション継続
+        async function continueSession(sessionId) {
+            try {
+                const idToken = cognitoAuth.getIdToken();
+                const response = await fetch(`${API_BASE_URL}/history/${sessionId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const sessionData = await response.json();
+                sessionData.sessionId = sessionId;  // セッションIDを確実に設定
+                
+                // チャット画面に遷移してセッションを継続
+                localStorage.setItem('restoreSession', JSON.stringify(sessionData));
+                window.location.href = 'chat.html';
+                
+            } catch (error) {
+                console.error('セッション継続エラー:', error);
+                alert('セッションの継続に失敗しました: ' + error.message);
+            }
+        }
+        
+        // セッション詳細表示（読み取り専用）
+        async function viewSession(sessionId) {
+            try {
+                const idToken = cognitoAuth.getIdToken();
+                const response = await fetch(`${API_BASE_URL}/history/${sessionId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const sessionData = await response.json();
+                // 新規セッションとして表示（継続なし）
+                sessionData.sessionId = null;  // 新規セッションとして表示
+                
+                localStorage.setItem('restoreSession', JSON.stringify(sessionData));
+                window.location.href = 'chat.html';
+                
+            } catch (error) {
+                console.error('セッション読み込みエラー:', error);
+                alert('セッションの読み込みに失敗しました: ' + error.message);
+            }
+        }
+
+        // セッション削除（カスタムダイアログ表示）
+        function deleteSession(sessionId) {
+            console.log('削除要求:', sessionId);
+            showDeleteConfirm(sessionId);
+        }
+        
+        // 実際の削除処理
+        async function performDelete(sessionId) {
+            console.log('=== 削除処理開始 ===');
+            console.log('削除対象セッションID:', sessionId);
+            console.log('API_BASE_URL:', API_BASE_URL);
+            
+            // 認証状態を詳細チェック
+            console.log('cognitoAuth:', cognitoAuth);
+            console.log('isAuthenticated:', cognitoAuth.isAuthenticated());
+            
+            if (!cognitoAuth.isAuthenticated()) {
+                alert('認証が無効です。再ログインしてください。');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                console.log('削除処理を開始:', sessionId);
+                const idToken = cognitoAuth.getIdToken();
+                console.log('IDトークン詳細:');
+                console.log('- 存在:', !!idToken);
+                console.log('- 長さ:', idToken ? idToken.length : 0);
+                console.log('- プレビュー:', idToken ? idToken.substring(0, 50) + '...' : 'なし');
+                
+                if (!idToken) {
+                    throw new Error('認証トークンが取得できませんでした');
+                }
+                
+                const url = `${API_BASE_URL}/history/${sessionId}`;
+                console.log('削除URL:', url);
+                
+                console.log('リクエスト送信中...');
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('=== API応答 ===');
+                console.log('ステータス:', response.status);
+                console.log('ステータステキスト:', response.statusText);
+                console.log('ヘッダー:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    console.error('エラーレスポンス本文:', errorData);
+                    
+                    let parsedError;
+                    try {
+                        parsedError = JSON.parse(errorData);
+                    } catch (e) {
+                        parsedError = { error: errorData };
+                    }
+                    
+                    throw new Error(`削除失敗 (${response.status}): ${parsedError.error || response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log('=== 削除成功 ===');
+                console.log('結果:', result);
+
+                // 成功メッセージを表示
+                alert(`✅ 削除完了\n${result.deletedCount}件のメッセージを削除しました`);
+
+                // 履歴を再読み込み
+                console.log('履歴を再読み込み中...');
+                showLoading();
+                await loadHistory();
+                console.log('履歴再読み込み完了');
+                
+            } catch (error) {
+                console.error('=== 削除エラー ===');
+                console.error('エラー:', error);
+                console.error('エラースタック:', error.stack);
+                
+                let userMessage = '削除に失敗しました。\n\n';
+                
+                if (error.message.includes('Failed to fetch') || error.message.includes('fetch')) {
+                    userMessage += 'ネットワークエラー: サーバーに接続できません。\nインターネット接続を確認してください。';
+                } else if (error.message.includes('401')) {
+                    userMessage += '認証エラー: ログインが必要です。';
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                } else {
+                    userMessage += `エラー詳細: ${error.message}`;
+                }
+                
+                alert(userMessage);
+            }
+        }
+
+        // UI状態管理
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('historyList').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorState').textContent = message;
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('historyList').style.display = 'none';
+        }
+
+        function showEmptyState() {
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('errorState').style.display = 'none';
+            document.getElementById('historyList').style.display = 'none';
+        }
+
+        // 日時フォーマット関数
+        function formatDate(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                console.error('Date formatting error:', error);
+                return timestamp || '不明な日時';
+            }
+        }
+
+        // ナビゲーション
+        function goToChat() {
+            window.location.href = 'chat.html';
+        }
+
+        // ログアウト機能は共通コンポーネントで提供
+    </script>
+</body>
+</html>

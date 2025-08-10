@@ -1,0 +1,49 @@
+{
+  "LambdaChatRole": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "lambda.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  },
+  "LambdaChatPolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        "Resource": "arn:aws:logs:*:*:*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
+        ],
+        "Resource": [
+          "arn:aws:dynamodb:*:*:table/UserTable",
+          "arn:aws:dynamodb:*:*:table/ChatHistoryTable"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+          "bedrock:InvokeAgent"
+        ],
+        "Resource": "arn:aws:bedrock:*:*:agent/*"
+      }
+    ]
+  }
+}
