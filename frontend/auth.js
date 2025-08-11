@@ -292,3 +292,413 @@ class CognitoAuth {
 
 // グローバルに公開
 window.CognitoAuth = CognitoAuth;
+
+// 統合認証・API通信ライブラリ
+class AuthManager {
+    constructor() {
+        this.apiBaseUrl = 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
+        this.cognitoConfig = {
+            userPoolId: 'ap-northeast-1_7CLrXZQiB',
+            clientId: '5b6kk9mghcr6k80cjn4fktb1jt',
+            region: 'ap-northeast-1'
+        };
+        this.cognitoAuth = new CognitoAuth(this.cognitoConfig);
+    }
+
+    // 認証状態チェック
+    isAuthenticated() {
+        const token = localStorage.getItem('idToken');
+        if (!token) return false;
+        
+        try {
+            // JWT の有効期限をチェック
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const now = Math.floor(Date.now() / 1000);
+            return payload.exp > now;
+        } catch (error) {
+            console.error('Token validation error:', error);
+            return false;
+        }
+    }
+
+    // 認証ヘッダー取得
+    getAuthHeaders() {
+        const token = localStorage.getItem('idToken');
+        return token ? {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        } : {
+            'Content-Type': 'application/json'
+        };
+    }
+
+    // APIリクエスト送信
+    async request(endpoint, options = {}) {
+        const url = `${this.apiBaseUrl}${endpoint}`;
+        const headers = this.getAuthHeaders();
+        
+        try {
+            const response = await fetch(url, {
+                ...options,
+                headers: { ...headers, ...options.headers }
+            });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    this.handleAuthError();
+                    throw new Error('認証エラー: ログインし直してください');
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error(`API request failed: ${endpoint}`, error);
+            throw error;
+        }
+    }
+
+    // GET リクエスト
+    async get(endpoint) {
+        return this.request(endpoint, { method: 'GET' });
+    }
+
+    // POST リクエスト
+    async post(endpoint, data) {
+        return this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    // DELETE リクエスト
+    async delete(endpoint) {
+        return this.request(endpoint, { method: 'DELETE' });
+    }
+
+    // 認証エラー処理
+    handleAuthError() {
+        console.log('Authentication error - clearing tokens');
+        localStorage.clear();
+        sessionStorage.clear();
+        // 現在がログインページでなければリダイレクト
+        if (!window.location.pathname.includes('index.html')) {
+            window.location.href = 'index.html';
+        }
+    }
+
+    // ログアウト
+    logout() {
+        if (confirm('ログアウトしますか？')) {
+            this.cognitoAuth.signOut();
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+    }
+}
+
+// チャット機能
+class ChatManager {
+    constructor(authManager) {
+        this.auth = authManager;
+        this.currentSessionId = null;
+        this.isProcessing = false;
+    }
+
+    // セッション初期化
+    initializeSession() {
+        this.currentSessionId = localStorage.getItem('currentSessionId');
+        if (!this.currentSessionId) {
+            this.currentSessionId = this.generateSessionId();
+            localStorage.setItem('currentSessionId', this.currentSessionId);
+        }
+        return this.currentSessionId;
+    }
+
+    // セッションID生成
+    generateSessionId() {
+        return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // 新規セッション作成
+    createNewSession() {
+        this.currentSessionId = this.generateSessionId();
+        localStorage.setItem('currentSessionId', this.currentSessionId);
+        return this.currentSessionId;
+    }
+
+    // メッセージ送信
+    async sendMessage(message) {
+        if (this.isProcessing || !message.trim()) {
+            return null;
+        }
+
+        this.isProcessing = true;
+        try {
+            const requestData = {
+                message: message.trim(),
+                sessionId: this.currentSessionId || this.initializeSession()
+            };
+
+            console.log('Sending message:', requestData);
+            const response = await this.auth.post('/chat', requestData);
+            console.log('Chat response:', response);
+            
+            return response;
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            throw error;
+        } finally {
+            this.isProcessing = false;
+        }
+    }
+}
+
+// 履歴管理
+class HistoryManager {
+    constructor(authManager) {
+        this.auth = authManager;
+    }
+
+    // 履歴一覧取得
+    async getHistory() {
+        try {
+            const response = await this.auth.get('/history');
+            console.log('History response:', response);
+            return response.conversations || [];
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            throw error;
+        }
+    }
+
+    // 履歴削除
+    async deleteHistory(sessionId) {
+        try {
+            await this.auth.delete(`/history?sessionId=${sessionId}`);
+            console.log('History deleted:', sessionId);
+        } catch (error) {
+            console.error('Failed to delete history:', error);
+            throw error;
+        }
+    }
+
+    // 全履歴削除
+    async deleteAllHistory() {
+        try {
+            await this.auth.delete('/history');
+            console.log('All history deleted');
+        } catch (error) {
+            console.error('Failed to delete all history:', error);
+            throw error;
+        }
+    }
+}
+
+// プロフィール管理
+class ProfileManager {
+    constructor(authManager) {
+        this.auth = authManager;
+    }
+
+    // プロフィール取得
+    async getProfile() {
+        try {
+            const response = await this.auth.get('/chat/profile');
+            console.log('Profile loaded from server:', response);
+            return response;
+        } catch (error) {
+            console.error('Failed to load profile from server:', error);
+            throw error;
+        }
+    }
+
+    // プロフィール保存
+    async saveProfile(profileData) {
+        try {
+            const response = await this.auth.post('/chat/profile', profileData);
+            console.log('Profile saved to server:', response);
+            return response;
+        } catch (error) {
+            console.error('Failed to save profile to server:', error);
+            throw error;
+        }
+    }
+
+    // ローカルプロフィール取得
+    getLocalProfile() {
+        try {
+            const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+            return profile;
+        } catch (error) {
+            console.error('Failed to load local profile:', error);
+            return {};
+        }
+    }
+
+    // ローカルプロフィール保存
+    saveLocalProfile(profileData) {
+        try {
+            localStorage.setItem('userProfile', JSON.stringify(profileData));
+        } catch (error) {
+            console.error('Failed to save local profile:', error);
+        }
+    }
+}
+
+// テーマ管理
+class ThemeManager {
+    constructor() {
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
+        this.initialize();
+    }
+
+    // テーマ初期化
+    initialize() {
+        document.body.setAttribute('data-theme', this.currentTheme);
+        this.updateThemeToggleText();
+    }
+
+    // テーマ切り替え
+    toggle() {
+        this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', this.currentTheme);
+        localStorage.setItem('theme', this.currentTheme);
+        this.updateThemeToggleText();
+    }
+
+    // テーマトグルテキスト更新
+    updateThemeToggleText() {
+        setTimeout(() => {
+            const themeToggle = document.getElementById('themeToggle');
+            if (themeToggle) {
+                const icon = this.currentTheme === 'dark' ? '🌙' : '☀️';
+                const text = this.currentTheme === 'dark' ? 'ダークモード' : 'ライトモード';
+                themeToggle.innerHTML = `<span class="menu-icon">${icon}</span> ${text}`;
+            }
+        }, 100);
+    }
+}
+
+// UI ユーティリティ
+class UIUtils {
+    // ステータス表示
+    static showStatus(message, type = 'info', duration = 3000) {
+        const statusDiv = document.getElementById('statusMessage') || this.createStatusDiv();
+        statusDiv.textContent = message;
+        statusDiv.className = `status-message ${type}`;
+        statusDiv.style.display = 'block';
+        
+        if (duration > 0) {
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, duration);
+        }
+    }
+
+    // ステータス用DIV作成
+    static createStatusDiv() {
+        let statusDiv = document.getElementById('statusMessage');
+        if (!statusDiv) {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'statusMessage';
+            statusDiv.className = 'status-message';
+            statusDiv.style.display = 'none';
+            document.body.appendChild(statusDiv);
+        }
+        return statusDiv;
+    }
+
+    // ローディング表示
+    static showLoading(elementId, message = '読み込み中...') {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = `<div class="loading">${message}</div>`;
+        }
+    }
+
+    // エラー表示
+    static showError(message, details = '') {
+        const errorMsg = document.getElementById('errorMessage');
+        if (errorMsg) {
+            errorMsg.style.display = 'block';
+            const errorDetails = errorMsg.querySelector('.error-details');
+            if (errorDetails) {
+                errorDetails.textContent = details || message;
+            }
+        }
+    }
+
+    // エラー非表示
+    static hideError() {
+        const errorMsg = document.getElementById('errorMessage');
+        if (errorMsg) {
+            errorMsg.style.display = 'none';
+        }
+    }
+
+    // 日時フォーマット
+    static formatDate(timestamp) {
+        try {
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) {
+                return '無効な日付';
+            }
+            return date.toLocaleString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            console.error('Date formatting error:', error);
+            return '日付不明';
+        }
+    }
+
+    // 相対時間フォーマット
+    static formatRelativeTime(timestamp) {
+        try {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffMins < 1) return 'たった今';
+            if (diffMins < 60) return `${diffMins}分前`;
+            if (diffHours < 24) return `${diffHours}時間前`;
+            if (diffDays < 7) return `${diffDays}日前`;
+            return this.formatDate(timestamp);
+        } catch (error) {
+            console.error('Relative time formatting error:', error);
+            return this.formatDate(timestamp);
+        }
+    }
+}
+
+// グローバル初期化
+window.authManager = new AuthManager();
+window.chatManager = new ChatManager(window.authManager);
+window.historyManager = new HistoryManager(window.authManager);
+window.profileManager = new ProfileManager(window.authManager);
+window.themeManager = new ThemeManager();
+window.UIUtils = UIUtils;
+
+// 認証チェックを含む共通初期化関数
+function initializeApp() {
+    // ログインページ以外で認証チェック
+    if (!window.location.pathname.includes('index.html') && !window.authManager.isAuthenticated()) {
+        console.log('Not authenticated, redirecting to login');
+        window.location.href = 'index.html';
+        return false;
+    }
+    return true;
+}
+
+// 共通関数をグローバルに公開（後方互換性のため）
+window.initializeApp = initializeApp;

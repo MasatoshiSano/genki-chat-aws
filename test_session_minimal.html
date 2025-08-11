@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Test</title>
+</head>
+<body>
+    <div>
+        <input type="text" id="messageInput" placeholder="メッセージ">
+        <button onclick="sendMessage()">送信</button>
+    </div>
+    <div id="messages"></div>
+    
+    <script>
+        const API_BASE_URL = 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
+        let activeSessionId = null;
+        
+        console.log('Page loaded, initial activeSessionId:', activeSessionId);
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            console.log('=== Sending Message ===');
+            console.log('Message:', message);
+            console.log('Current activeSessionId:', activeSessionId);
+            
+            const requestBody = JSON.stringify({
+                message: message,
+                sessionId: activeSessionId
+            });
+            
+            console.log('Request body:', requestBody);
+            
+            try {
+                // Using fake token for testing
+                const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZW1vLXVzZXItMTIzIiwiZW1haWwiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.fake';
+                
+                const response = await fetch(`${API_BASE_URL}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${fakeToken}`
+                    },
+                    body: requestBody
+                });
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.sessionId) {
+                    activeSessionId = data.sessionId;
+                    console.log('Updated activeSessionId to:', activeSessionId);
+                } else {
+                    console.log('Warning: No sessionId in response');
+                }
+                
+                // Display response
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML += `<div>User: ${message}</div>`;
+                messagesDiv.innerHTML += `<div>Bot: ${data.reply || 'Error'}</div>`;
+                messagesDiv.innerHTML += `<div>SessionId: ${data.sessionId || 'None'}</div><hr>`;
+                
+                input.value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+        
+        // Allow Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

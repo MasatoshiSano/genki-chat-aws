@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Chat - チャット履歴</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- ヘッダー (コンポーネントで動的生成) -->
+        <div id="headerContainer"></div>
+
+        <!-- メインコンテンツ -->
+        <div class="content">
+            <div class="history-header">
+                <h2>📚 チャット履歴</h2>
+                <div class="history-actions">
+                    <button class="btn-secondary" onclick="loadHistory()">🔄 更新</button>
+                    <button class="btn-primary delete-all" onclick="deleteAllHistory()">🗑️ 全て削除</button>
+                </div>
+            </div>
+
+            <!-- 履歴リスト -->
+            <div class="history-list" id="historyList">
+                <div class="loading" id="historyLoading">履歴を読み込み中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- スクリプト -->
+    <script src="components.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('History page initializing...');
+            
+            // 認証チェック
+            if (!initializeApp()) {
+                return;
+            }
+
+            try {
+                await initializeHistory();
+            } catch (error) {
+                console.error('History initialization failed:', error);
+                UIUtils.showError('履歴ページの初期化に失敗しました', error.message);
+            }
+        });
+
+        // 履歴ページ初期化
+        async function initializeHistory() {
+            // ヘッダー初期化
+            initializeHeader();
+            
+            // 履歴読み込み
+            await loadHistory();
+            
+            console.log('History page initialized successfully');
+        }
+
+        // ヘッダー初期化
+        function initializeHeader() {
+            const headerContainer = document.getElementById('headerContainer');
+            headerContainer.innerHTML = componentManager.createHeader({
+                title: '📚 チャット履歴',
+                showBackButton: true,
+                backUrl: 'chat-clean.html',
+                backText: 'チャット'
+            });
+            
+            // ComponentManagerの共通機能を初期化
+            componentManager.initializeCommon();
+        }
+
+        // 履歴読み込み
+        async function loadHistory() {
+            const historyList = document.getElementById('historyList');
+            const loadingEl = document.getElementById('historyLoading');
+            
+            try {
+                UIUtils.showLoading('historyList', '履歴を読み込み中...');
+                
+                const conversations = await historyManager.getHistory();
+                console.log('Loaded conversations:', conversations);
+                
+                if (conversations.length === 0) {
+                    historyList.innerHTML = `
+                        <div class="no-history">
+                            <div class="no-history-icon">💭</div>
+                            <div class="no-history-text">まだチャット履歴がありません</div>
+                            <div class="no-history-subtext">新しいチャットを始めてみましょう！</div>
+                            <a href="chat-clean.html" class="btn-primary" style="margin-top: 1rem;">💬 チャット開始</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 履歴アイテムを作成
+                const historyItems = conversations.map(conversation => 
+                    createHistoryItem(conversation)
+                ).join('');
+                
+                historyList.innerHTML = historyItems;
+                
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                historyList.innerHTML = `
+                    <div class="error-message">
+                        <div class="error-title">履歴の読み込みに失敗しました</div>
+                        <div class="error-details">${error.message}</div>
+                        <button class="btn-primary" onclick="loadHistory()">再試行</button>
+                    </div>
+                `;
+            }
+        }
+
+        // 履歴アイテム作成
+        function createHistoryItem(conversation) {
+            const date = UIUtils.formatDate(conversation.updatedAt || conversation.createdAt);
+            const relativeTime = UIUtils.formatRelativeTime(conversation.updatedAt || conversation.createdAt);
+            const preview = conversation.firstMessage ? 
+                conversation.firstMessage.substring(0, 60) + (conversation.firstMessage.length > 60 ? '...' : '') : 
+                '新しい会話';
+            
+            return `
+                <div class="history-item">
+                    <div class="history-content" onclick="resumeChat('${conversation.sessionId}')">
+                        <div class="history-title">
+                            <span class="history-time">${relativeTime}</span>
+                            <span class="history-badge">💬 ${conversation.messageCount || 0}件</span>
+                        </div>
+                        <div class="history-preview">${preview}</div>
+                        <div class="history-date">${date}</div>
+                    </div>
+                    <button class="delete-button" onclick="deleteHistory('${conversation.sessionId}', event)" title="この会話を削除">
+                        🗑️
+                    </button>
+                </div>
+            `;
+        }
+
+        // チャット再開
+        function resumeChat(sessionId) {
+            localStorage.setItem('currentSessionId', sessionId);
+            window.location.href = 'chat-clean.html';
+        }
+
+        // 個別履歴削除
+        async function deleteHistory(sessionId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            if (!confirm('この会話を削除しますか？')) {
+                return;
+            }
+
+            try {
+                await historyManager.deleteHistory(sessionId);
+                UIUtils.showStatus('会話を削除しました', 'success');
+                await loadHistory(); // 履歴を再読み込み
+            } catch (error) {
+                console.error('Failed to delete history:', error);
+                UIUtils.showStatus('削除に失敗しました: ' + error.message, 'error');
+            }
+        }
+
+        // 全履歴削除
+        async function deleteAllHistory() {
+            if (!confirm('全ての会話履歴を削除しますか？この操作は元に戻せません。')) {
+                return;
+            }
+
+            try {
+                await historyManager.deleteAllHistory();
+                UIUtils.showStatus('全ての履歴を削除しました', 'success');
+                await loadHistory(); // 履歴を再読み込み
+            } catch (error) {
+                console.error('Failed to delete all history:', error);
+                UIUtils.showStatus('削除に失敗しました: ' + error.message, 'error');
+            }
+        }
+
+        // グローバル関数として公開
+        window.loadHistory = loadHistory;
+        window.resumeChat = resumeChat;
+        window.deleteHistory = deleteHistory;
+        window.deleteAllHistory = deleteAllHistory;
+    </script>
+
+    <style>
+        /* 履歴ページ専用スタイル */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .history-header h2 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin: 0;
+            color: #e4e4e7;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .history-item {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .history-content {
+            flex: 1;
+            padding: 1.25rem;
+            cursor: pointer;
+        }
+
+        .history-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-time {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .history-badge {
+            font-size: 0.8rem;
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .history-preview {
+            color: #e4e4e7;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-date {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .delete-button {
+            background: none;
+            border: none;
+            padding: 1rem;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .delete-button:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #94a3b8;
+        }
+
+        .no-history-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.7;
+        }
+
+        .no-history-text {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #e4e4e7;
+        }
+
+        .no-history-subtext {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        /* ライトモード対応 */
+        body[data-theme="light"] .history-header {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-theme="light"] .history-header h2 {
+            color: #334155;
+        }
+
+        body[data-theme="light"] .history-item {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-theme="light"] .history-item:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.15);
+        }
+
+        body[data-theme="light"] .history-time {
+            color: #64748b;
+        }
+
+        body[data-theme="light"] .history-preview {
+            color: #334155;
+        }
+
+        body[data-theme="light"] .history-date {
+            color: #64748b;
+        }
+
+        body[data-theme="light"] .delete-button {
+            color: #64748b;
+            border-left: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        body[data-theme="light"] .delete-button:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .history-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .history-actions {
+                justify-content: center;
+            }
+
+            .history-title {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .delete-button {
+                padding: 0.75rem;
+            }
+        }
+    </style>
+</body>
+</html>

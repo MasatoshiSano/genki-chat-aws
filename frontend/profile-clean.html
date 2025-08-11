@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Chat - プロフィール設定</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- ヘッダー (コンポーネントで動的生成) -->
+        <div id="headerContainer"></div>
+
+        <!-- メインコンテンツ -->
+        <div class="content">
+            <div class="profile-container">
+                <h2>👤 プロフィール設定</h2>
+                <p class="profile-description">
+                    あなたの情報を入力することで、AIがより適切な会話をしてくれます。<br>
+                    すべての項目は任意です。いつでも変更できます。
+                </p>
+                
+                <form id="profileForm" class="profile-form">
+                    <!-- ユーザー名 -->
+                    <div class="form-group">
+                        <label for="userName">ユーザー名</label>
+                        <input type="text" id="userName" name="userName" class="form-input" 
+                               placeholder="どのように呼ばれたいですか？" maxlength="50">
+                        <small>AIがあなたを呼ぶときの名前です</small>
+                    </div>
+
+                    <!-- 年齢 -->
+                    <div class="form-group">
+                        <label for="age">年齢</label>
+                        <select id="age" name="age" class="form-input">
+                            <option value="">選択してください</option>
+                            <option value="10代">10代</option>
+                            <option value="20代">20代</option>
+                            <option value="30代">30代</option>
+                            <option value="40代">40代</option>
+                            <option value="50代">50代</option>
+                            <option value="60代以上">60代以上</option>
+                        </select>
+                        <small>年齢に適した話し方で会話します</small>
+                    </div>
+
+                    <!-- 職業 -->
+                    <div class="form-group">
+                        <label for="occupation">職業</label>
+                        <input type="text" id="occupation" name="occupation" class="form-input" 
+                               placeholder="例：学生、会社員、エンジニア、主婦など" maxlength="50">
+                        <small>職業に関連した話題やアドバイスを提供します</small>
+                    </div>
+
+                    <!-- 性別 -->
+                    <div class="form-group">
+                        <label for="gender">性別</label>
+                        <select id="gender" name="gender" class="form-input">
+                            <option value="">選択してください</option>
+                            <option value="男性">男性</option>
+                            <option value="女性">女性</option>
+                            <option value="その他">その他</option>
+                            <option value="答えない">答えない</option>
+                        </select>
+                        <small>適切な敬語や話し方で会話します</small>
+                    </div>
+
+                    <!-- 応答の長さ -->
+                    <div class="form-group">
+                        <label for="responseLength">応答の長さ</label>
+                        <select id="responseLength" name="responseLength" class="form-input">
+                            <option value="short">短め（1-2行）</option>
+                            <option value="medium" selected>普通（2-4行）</option>
+                            <option value="long">詳しく（4-8行）</option>
+                        </select>
+                        <small>AIの返信の長さを設定できます</small>
+                    </div>
+
+                    <!-- ボタン -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="saveBtn">💾 設定を保存</button>
+                        <button type="button" class="btn-secondary" id="resetBtn">🔄 リセット</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- スクリプト -->
+    <script src="components.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // ページ初期化
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Profile page initializing...');
+            
+            // 認証チェック
+            if (!initializeApp()) {
+                return;
+            }
+
+            try {
+                await initializeProfile();
+            } catch (error) {
+                console.error('Profile initialization failed:', error);
+                UIUtils.showError('プロフィールページの初期化に失敗しました', error.message);
+            }
+        });
+
+        // プロフィールページ初期化
+        async function initializeProfile() {
+            // ヘッダー初期化
+            initializeHeader();
+            
+            // イベントリスナー設定
+            setupEventListeners();
+            
+            // プロフィール読み込み
+            await loadProfile();
+            
+            console.log('Profile page initialized successfully');
+        }
+
+        // ヘッダー初期化
+        function initializeHeader() {
+            const headerContainer = document.getElementById('headerContainer');
+            headerContainer.innerHTML = componentManager.createHeader({
+                title: '👤 プロフィール',
+                showBackButton: true,
+                backUrl: 'chat-clean.html',
+                backText: 'チャット'
+            });
+            
+            // ComponentManagerの共通機能を初期化
+            componentManager.initializeCommon();
+        }
+
+        // イベントリスナー設定
+        function setupEventListeners() {
+            // フォーム送信
+            document.getElementById('profileForm').addEventListener('submit', handleProfileSave);
+            
+            // リセットボタン
+            document.getElementById('resetBtn').addEventListener('click', handleProfileReset);
+        }
+
+        // プロフィール読み込み
+        async function loadProfile() {
+            try {
+                // サーバーからプロフィールを読み込み
+                const serverProfile = await profileManager.getProfile();
+                
+                if (serverProfile && Object.keys(serverProfile).length > 0) {
+                    fillForm(serverProfile);
+                    // ローカルストレージも更新
+                    profileManager.saveLocalProfile(serverProfile);
+                } else {
+                    // サーバーにプロフィールがない場合、ローカルから読み込み
+                    const localProfile = profileManager.getLocalProfile();
+                    if (Object.keys(localProfile).length > 0) {
+                        fillForm(localProfile);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Failed to load profile from server:', error);
+                // サーバーからの読み込みに失敗した場合、ローカルから読み込み
+                const localProfile = profileManager.getLocalProfile();
+                if (Object.keys(localProfile).length > 0) {
+                    fillForm(localProfile);
+                    UIUtils.showStatus('ローカルプロフィールを読み込みました', 'info', 2000);
+                }
+            }
+        }
+
+        // フォームにデータを入力
+        function fillForm(profile) {
+            if (profile.userName) document.getElementById('userName').value = profile.userName;
+            if (profile.age) document.getElementById('age').value = profile.age;
+            if (profile.occupation) document.getElementById('occupation').value = profile.occupation;
+            if (profile.gender) document.getElementById('gender').value = profile.gender;
+            if (profile.responseLength) document.getElementById('responseLength').value = profile.responseLength;
+        }
+
+        // プロフィール保存処理
+        async function handleProfileSave(event) {
+            event.preventDefault();
+            
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.textContent;
+            
+            try {
+                // UI更新
+                saveBtn.disabled = true;
+                saveBtn.textContent = '💾 保存中...';
+                
+                // フォームデータ取得
+                const formData = new FormData(event.target);
+                const profile = {
+                    userName: formData.get('userName') || '',
+                    age: formData.get('age') || '',
+                    occupation: formData.get('occupation') || '',
+                    gender: formData.get('gender') || '',
+                    responseLength: formData.get('responseLength') || 'medium',
+                    updatedAt: new Date().toISOString()
+                };
+                
+                console.log('Saving profile:', profile);
+                
+                // ローカルに保存
+                profileManager.saveLocalProfile(profile);
+                
+                // サーバーに保存
+                await profileManager.saveProfile(profile);
+                
+                // 成功メッセージ
+                UIUtils.showStatus('✅ プロフィールが保存されました！', 'success');
+                
+            } catch (error) {
+                console.error('Failed to save profile:', error);
+                UIUtils.showStatus('❌ 保存に失敗しました: ' + error.message, 'error');
+            } finally {
+                // UI復元
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
+
+        // プロフィールリセット処理
+        function handleProfileReset() {
+            if (confirm('プロフィール設定をリセットしますか？')) {
+                document.getElementById('profileForm').reset();
+                document.getElementById('responseLength').value = 'medium';
+                
+                // ローカルストレージからも削除
+                localStorage.removeItem('userProfile');
+                
+                UIUtils.showStatus('🔄 プロフィールがリセットされました', 'info');
+            }
+        }
+
+        // グローバル関数として公開
+        window.loadProfile = loadProfile;
+    </script>
+
+    <style>
+        /* プロフィール専用スタイル */
+        .profile-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .profile-container h2 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .profile-description {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .profile-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 500;
+            color: #e4e4e7;
+            font-size: 0.95rem;
+        }
+
+        .form-group small {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            opacity: 0.9;
+            margin-top: 0.25rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .form-actions .btn-primary,
+        .form-actions .btn-secondary {
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* ライトモード対応 */
+        body[data-theme="light"] .profile-description {
+            color: #64748b;
+        }
+
+        body[data-theme="light"] .form-group label {
+            color: #334155;
+        }
+
+        body[data-theme="light"] .form-group small {
+            color: #64748b;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 768px) {
+            .profile-container {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            
+            .form-actions .btn-primary,
+            .form-actions .btn-secondary {
+                flex: none;
+            }
+        }
+    </style>
+</body>
+</html>

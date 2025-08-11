@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS Chat - Debug</title>
+    <link rel="stylesheet" href="styles-debug.css">
+    <style>
+        /* インライン緊急デバッグ用 */
+        body {
+            background: #1a1a2e !important;
+            color: white !important;
+        }
+        .test-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: #00f5ff;
+            color: black;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-indicator">CSS読み込み確認</div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>💫 NEXUS Chat DEBUG</h1>
+            </div>
+        </div>
+        <div class="content">
+            <div class="login-container">
+                <div class="logo">💫</div>
+                <h2>NEXUS Chat</h2>
+                <p class="subtitle">デバッグモード - スタイルテスト</p>
+                <div class="login-form">
+                    <input type="email" placeholder="メールアドレス" required>
+                    <input type="password" placeholder="パスワード" required>
+                    <button class="login-btn">ログインテスト</button>
+                    <a href="#" class="signup-link">新規登録テスト</a>
+                </div>
+                <div class="status success" style="display: block;">✅ CSS読み込み成功</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

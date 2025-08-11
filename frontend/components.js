@@ -1,7 +1,8 @@
-// 共通コンポーネント管理
+// 共通コンポーネント管理システム
 class ComponentManager {
     constructor() {
         this.components = new Map();
+        this.apiBaseUrl = 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
     }
 
     // ヘッダーコンポーネントを作成
@@ -54,7 +55,7 @@ class ComponentManager {
     // デフォルトのメニューアイテム
     getDefaultMenuItems() {
         return [
-            { icon: '✨', text: '新規チャット', onclick: 'newSession()' },
+            { icon: '💬', text: '新規チャット', onclick: 'newSession()' },
             { icon: '📚', text: '履歴', href: 'history.html' },
             { icon: '👤', text: 'プロフィール', href: 'profile.html' },
             { icon: '🌙', text: 'ダークモード', onclick: 'toggleTheme()', id: 'themeToggle' },
@@ -174,12 +175,67 @@ class ComponentManager {
         `;
     }
 
+    // APIクライアント機能
+    createApiClient() {
+        return {
+            // APIベースURL取得
+            getApiBaseUrl: () => this.apiBaseUrl,
+
+            // 認証ヘッダー取得
+            getAuthHeaders: () => {
+                const token = localStorage.getItem('idToken');
+                return token ? {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                } : {
+                    'Content-Type': 'application/json'
+                };
+            },
+
+            // APIリクエスト送信
+            async request(endpoint, options = {}) {
+                const url = `${this.getApiBaseUrl()}${endpoint}`;
+                const headers = this.getAuthHeaders();
+                
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: { ...headers, ...options.headers }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    console.error(`API request failed: ${endpoint}`, error);
+                    throw error;
+                }
+            },
+
+            // GET リクエスト
+            async get(endpoint) {
+                return this.request(endpoint, { method: 'GET' });
+            },
+
+            // POST リクエスト
+            async post(endpoint, data) {
+                return this.request(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+            },
+
+            // DELETE リクエスト
+            async delete(endpoint) {
+                return this.request(endpoint, { method: 'DELETE' });
+            }
+        };
+    }
+
     // 共通のユーティリティ関数
     static utils = {
-        // APIベースURL取得
-        getApiBaseUrl() {
-            return 'https://i6zlozpitk.execute-api.ap-northeast-1.amazonaws.com/prod';
-        },
 
         // エラー表示
         showError(message, details = '') {
@@ -203,19 +259,111 @@ class ComponentManager {
 
         // 日時フォーマット
         formatDate(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString('ja-JP', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            try {
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) {
+                    return '無効な日付';
+                }
+                return date.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                console.error('Date formatting error:', error);
+                return '日付不明';
+            }
+        },
+
+        // 相対時間フォーマット
+        formatRelativeTime(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now.getTime() - date.getTime();
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffMins < 1) return 'たった今';
+                if (diffMins < 60) return `${diffMins}分前`;
+                if (diffHours < 24) return `${diffHours}時間前`;
+                if (diffDays < 7) return `${diffDays}日前`;
+                return this.formatDate(timestamp);
+            } catch (error) {
+                console.error('Relative time formatting error:', error);
+                return this.formatDate(timestamp);
+            }
+        },
+
+        // ローディング状態管理
+        showLoading(elementId, message = '読み込み中...') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = `<div class="loading">${message}</div>`;
+            }
+        },
+
+        // ステータスメッセージ表示
+        showStatus(message, type = 'info', duration = 3000) {
+            const statusDiv = document.getElementById('statusMessage') || this.createStatusDiv();
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, duration);
+            }
+        },
+
+        // ステータスメッセージ用DIV作成
+        createStatusDiv() {
+            let statusDiv = document.getElementById('statusMessage');
+            if (!statusDiv) {
+                statusDiv = document.createElement('div');
+                statusDiv.id = 'statusMessage';
+                statusDiv.className = 'status-message';
+                statusDiv.style.display = 'none';
+                document.body.appendChild(statusDiv);
+            }
+            return statusDiv;
         },
 
         // セッションIDの生成
         generateSessionId() {
             return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        },
+
+        // 認証状態チェック
+        isAuthenticated() {
+            const token = localStorage.getItem('idToken');
+            if (!token) return false;
+            
+            try {
+                // JWTの有効期限をチェック（簡易版）
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const now = Math.floor(Date.now() / 1000);
+                return payload.exp > now;
+            } catch (error) {
+                console.error('Token validation error:', error);
+                return false;
+            }
+        },
+
+        // ページリダイレクト
+        redirectToLogin() {
+            window.location.href = 'index.html';
+        },
+
+        // 安全なHTML挿入
+        sanitizeHtml(html) {
+            const div = document.createElement('div');
+            div.textContent = html;
+            return div.innerHTML;
         }
     };
 }

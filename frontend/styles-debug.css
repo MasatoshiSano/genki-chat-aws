@@ -1,0 +1,220 @@
+/* NEXUS Chat - Debug Version */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600&display=swap');
+
+/* Base Styles with Direct Values */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+    font-weight: 200;
+    background: radial-gradient(circle at 15% 25%, rgba(0, 245, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 45%),
+                radial-gradient(circle at 50% 90%, rgba(236, 72, 153, 0.10) 0%, transparent 50%),
+                linear-gradient(135deg, #050510 0%, #0a0a1a 25%, #0f0f23 50%, #1a1a2e 75%, #16213e 100%) !important;
+    min-height: 100vh;
+    color: #f7fafc !important;
+    line-height: 1.6;
+    position: relative;
+}
+
+/* Container */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background: rgba(10, 10, 15, 0.8) !important;
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-left: 2px solid rgba(0, 245, 255, 0.2);
+    border-right: 2px solid rgba(0, 245, 255, 0.2);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.6), 0 0 40px rgba(99, 102, 241, 0.4);
+}
+
+/* Header */
+.header {
+    background: rgba(5, 5, 16, 0.9) !important;
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border-bottom: 2px solid rgba(0, 245, 255, 0.3);
+    color: #f7fafc;
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 40px rgba(0, 245, 255, 0.35);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-height: 80px;
+    flex-shrink: 0;
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    font-weight: 100;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #00f5ff 0%, #6366f1 50%, #ec4899 100%) !important;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-transform: uppercase;
+    filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.6));
+}
+
+/* Content Area for Login */
+.container .content {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: calc(100vh - 80px) !important;
+    padding: 2rem !important;
+}
+
+/* Login Container */
+.login-container {
+    background: rgba(10, 10, 15, 0.8) !important;
+    backdrop-filter: blur(32px) !important;
+    -webkit-backdrop-filter: blur(32px);
+    border: 2px solid rgba(0, 245, 255, 0.2) !important;
+    border-radius: 24px;
+    box-shadow: 0 12px 60px rgba(0, 245, 255, 0.4) !important;
+    padding: 3rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.login-container .logo {
+    font-size: 4rem !important;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.6));
+    animation: nexus-logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes nexus-logo-pulse {
+    0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.6)); }
+    50% { filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.8)); }
+}
+
+.login-container h2 {
+    font-size: 2rem !important;
+    font-weight: 200;
+    margin-bottom: 2rem;
+    background: linear-gradient(135deg, #00f5ff 0%, #6366f1 50%, #ec4899 100%) !important;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    color: #718096 !important;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+    font-weight: 200;
+    line-height: 1.6;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.login-form input {
+    padding: 0.875rem 1rem !important;
+    border: 1px solid rgba(0, 245, 255, 0.2) !important;
+    border-radius: 12px;
+    background: rgba(10, 10, 15, 0.8) !important;
+    color: #f7fafc !important;
+    font-size: 0.925rem;
+    font-weight: 200;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font-family: inherit;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: #00f5ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.15), 0 2px 8px rgba(0, 245, 255, 0.15) !important;
+    transform: translateY(-1px);
+}
+
+.login-form input::placeholder {
+    color: #718096 !important;
+    opacity: 0.8;
+}
+
+.login-btn {
+    background: linear-gradient(135deg, #00f5ff 0%, #0ea5e9 35%, #6366f1 100%) !important;
+    color: #f7fafc !important;
+    border: none !important;
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 40px rgba(0, 245, 255, 0.35) !important;
+}
+
+.signup-link {
+    color: #00f5ff !important;
+    text-decoration: none;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 400;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.signup-link:hover {
+    color: #f7fafc !important;
+    text-shadow: 0 0 10px #00f5ff;
+    transform: translateY(-1px);
+}
+
+.form-toggle {
+    display: none;
+}
+
+.status {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 400;
+    text-align: center;
+    display: none;
+}
+
+.status.success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 245, 255, 0.15);
+}
+
+.status.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    box-shadow: 0 2px 8px rgba(0, 245, 255, 0.15);
+}

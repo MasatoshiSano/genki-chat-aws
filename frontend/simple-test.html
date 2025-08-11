@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Style Test</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: linear-gradient(135deg, #050510 0%, #0a0a1a 25%, #0f0f23 50%, #1a1a2e 75%, #16213e 100%);
+            color: #f7fafc;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .test-container {
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(32px);
+            border: 2px solid rgba(0, 245, 255, 0.2);
+            border-radius: 24px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 12px 60px rgba(0, 245, 255, 0.4);
+        }
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 10px rgba(0, 245, 255, 0.6));
+        }
+        .title {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #00f5ff 0%, #6366f1 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        .btn {
+            background: linear-gradient(135deg, #00f5ff 0%, #0ea5e9 35%, #6366f1 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 0.5rem;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(0, 245, 255, 0.35);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="logo">💫</div>
+        <h1 class="title">NEXUS Chat</h1>
+        <p>サイバーパンクデザインテスト</p>
+        <button class="btn">スタイル確認</button>
+        <p style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.8;">
+            このページが暗い背景、ネオンカラー、グラスエフェクトで表示されていれば<br>
+            サイバーパンクスタイルが正常に動作しています。
+        </p>
+    </div>
+</body>
+</html>

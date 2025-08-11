@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamburger Button Test</title>
+    <link rel="stylesheet" href="styles.css?v=4">
+    <style>
+        body {
+            background: linear-gradient(135deg, #050510 0%, #1a1a2e 100%);
+            color: white;
+            font-family: Inter, sans-serif;
+            padding: 2rem;
+        }
+        .test-header {
+            background: rgba(5, 5, 16, 0.9);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .info {
+            background: rgba(0, 245, 255, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 245, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🍔 ハンバーガーボタンテスト</h1>
+        <p>下のハンバーガーボタンをクリックして、シンプルなデザインになっているかを確認してください。</p>
+    </div>
+
+    <div class="test-header">
+        <h2>NEXUS Chat Test</h2>
+        <div class="hamburger-menu" id="hamburgerMenu">
+            <button class="hamburger-button" onclick="toggleMenu()">
+                <div class="hamburger-icon">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </div>
+            </button>
+            <div class="menu-dropdown">
+                <div class="menu-item">
+                    <span class="menu-icon">💬</span>
+                    チャット
+                </div>
+                <div class="menu-item">
+                    <span class="menu-icon">📚</span>
+                    履歴
+                </div>
+                <div class="menu-item">
+                    <span class="menu-icon">👤</span>
+                    プロフィール
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="info">
+        <h3>期待される変更:</h3>
+        <ul>
+            <li>✅ 背景: 薄い半透明（グラデーションなし）</li>
+            <li>✅ ボーダー: 細い1px線（太いグラデーションボーダーなし）</li>
+            <li>✅ サイズ: コンパクト（大きな影やエフェクトなし）</li>
+            <li>✅ ライン: シンプルな白線（ネオンエフェクトなし）</li>
+            <li>✅ ホバー: 控えめ（大きなアニメーションなし）</li>
+        </ul>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('hamburgerMenu');
+            menu.classList.toggle('active');
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('hamburgerMenu');
+            if (menu && !menu.contains(event.target)) {
+                menu.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
